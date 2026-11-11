@@ -6,408 +6,18 @@
   <title>NotebookLM Tabs — Community Collection</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet" />
-  <style>
-    :root {
-      --bg: #f5f2eb;
-      --bg2: #edeae1;
-      --ink: #1a1814;
-      --ink2: #5a564e;
-      --accent: #d4691e;
-      --accent2: #2d5a3d;
-      --card-bg: #faf8f3;
-      --border: #d8d3c8;
-      --tag-bg: #e8e3d8;
-    }
-
-    [data-theme="dark"] {
-      --bg: #131210;
-      --bg2: #1c1a17;
-      --ink: #f0ece3;
-      --ink2: #9a9286;
-      --accent: #e07a38;
-      --accent2: #4a8a5e;
-      --card-bg: #1a1814;
-      --border: #2e2b26;
-      --tag-bg: #252219;
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: 'Syne', sans-serif;
-      background: var(--bg);
-      color: var(--ink);
-      min-height: 100vh;
-    }
-
-    /* ── HEADER ── */
-    header {
-      border-bottom: 1.5px solid var(--border);
-      padding: 0 2.5rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      height: 64px;
-      position: sticky;
-      top: 0;
-      background: var(--bg);
-      z-index: 100;
-    }
-
-    .logo {
-      display: flex;
-      align-items: baseline;
-      gap: 0.5rem;
-    }
-
-    .logo-text {
-      font-family: 'Instrument Serif', serif;
-      font-size: 1.4rem;
-      letter-spacing: -0.01em;
-    }
-
-    .logo-badge {
-      font-family: 'DM Mono', monospace;
-      font-size: 0.65rem;
-      background: var(--accent);
-      color: white;
-      padding: 2px 7px;
-      border-radius: 2px;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-    }
-
-    .header-actions {
-      display: flex;
-      gap: 1rem;
-      align-items: center;
-    }
-
-    .btn-submit {
-      font-family: 'Syne', sans-serif;
-      font-size: 0.8rem;
-      font-weight: 600;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      background: var(--ink);
-      color: var(--bg);
-      border: none;
-      padding: 0.5rem 1.1rem;
-      cursor: pointer;
-      text-decoration: none;
-      display: inline-block;
-      transition: background 0.15s, color 0.15s;
-    }
-
-    .btn-submit:hover {
-      background: var(--accent);
-    }
-
-    .btn-theme {
-      background: none;
-      border: 1.5px solid var(--border);
-      color: var(--ink2);
-      width: 36px;
-      height: 36px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: border-color 0.15s, color 0.15s;
-      flex-shrink: 0;
-    }
-
-    .btn-theme:hover {
-      border-color: var(--ink);
-      color: var(--ink);
-    }
-
-    /* ── HERO ── */
-    .hero {
-      padding: 5rem 2.5rem 3.5rem;
-      max-width: 900px;
-    }
-
-    .hero-eyebrow {
-      font-family: 'DM Mono', monospace;
-      font-size: 0.72rem;
-      color: var(--ink2);
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      margin-bottom: 1.2rem;
-    }
-
-    .hero h1 {
-      font-family: 'Instrument Serif', serif;
-      font-size: clamp(2.8rem, 6vw, 4.5rem);
-      line-height: 1.08;
-      letter-spacing: -0.02em;
-      margin-bottom: 1.4rem;
-    }
-
-    .hero h1 em {
-      font-style: italic;
-      color: var(--accent);
-    }
-
-    .hero-sub {
-      font-size: 1rem;
-      color: var(--ink2);
-      max-width: 500px;
-      line-height: 1.65;
-    }
-
-    /* ── CONTROLS ── */
-    .controls {
-      padding: 0 2.5rem 2rem;
-      display: flex;
-      gap: 1rem;
-      align-items: center;
-      flex-wrap: wrap;
-      border-bottom: 1.5px solid var(--border);
-    }
-
-    .search-wrap {
-      position: relative;
-      flex: 1;
-      min-width: 220px;
-      max-width: 380px;
-    }
-
-    .search-wrap svg {
-      position: absolute;
-      left: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: var(--ink2);
-      pointer-events: none;
-    }
-
-    #search {
-      width: 100%;
-      font-family: 'Syne', sans-serif;
-      font-size: 0.875rem;
-      border: 1.5px solid var(--border);
-      background: var(--card-bg);
-      color: var(--ink);
-      padding: 0.55rem 0.8rem 0.55rem 2.4rem;
-      outline: none;
-      transition: border-color 0.15s;
-    }
-
-    #search:focus { border-color: var(--ink); }
-    #search::placeholder { color: var(--ink2); }
-
-    .filter-pills {
-      display: flex;
-      gap: 0.4rem;
-      flex-wrap: wrap;
-    }
-
-    .pill {
-      font-family: 'DM Mono', monospace;
-      font-size: 0.7rem;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      padding: 0.35rem 0.85rem;
-      border: 1.5px solid var(--border);
-      background: transparent;
-      color: var(--ink2);
-      cursor: pointer;
-      transition: all 0.12s;
-    }
-
-    .pill:hover { border-color: var(--ink); color: var(--ink); }
-    .pill.active { background: var(--ink); color: var(--bg); border-color: var(--ink); }
-
-    .count-label {
-      font-family: 'DM Mono', monospace;
-      font-size: 0.72rem;
-      color: var(--ink2);
-      margin-left: auto;
-    }
-
-    /* ── GRID ── */
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      gap: 1.5px;
-      padding: 1.5px;
-      margin-top: 0;
-    }
-
-    .card {
-      background: var(--card-bg);
-      padding: 1.6rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-      transition: background 0.15s;
-      animation: fadeUp 0.35s ease both;
-      border: 1.5px solid transparent;
-    }
-
-    .card:hover {
-      background: var(--bg2);
-      border-color: var(--border);
-    }
-
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(10px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-
-    .card-category {
-      font-family: 'DM Mono', monospace;
-      font-size: 0.65rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--accent);
-    }
-
-    .card-title {
-      font-family: 'Instrument Serif', serif;
-      font-size: 1.25rem;
-      line-height: 1.3;
-      letter-spacing: -0.01em;
-    }
-
-    .card-desc {
-      font-size: 0.845rem;
-      color: var(--ink2);
-      line-height: 1.6;
-      flex: 1;
-    }
-
-    .card-tags {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.35rem;
-    }
-
-    .tag {
-      font-family: 'DM Mono', monospace;
-      font-size: 0.65rem;
-      background: var(--tag-bg);
-      color: var(--ink2);
-      padding: 2px 8px;
-      border-radius: 2px;
-    }
-
-    .card-footer {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding-top: 0.5rem;
-      border-top: 1px solid var(--border);
-      margin-top: auto;
-    }
-
-    .card-author {
-      font-family: 'DM Mono', monospace;
-      font-size: 0.68rem;
-      color: var(--ink2);
-    }
-
-    .card-link {
-      font-family: 'DM Mono', monospace;
-      font-size: 0.68rem;
-      font-weight: 500;
-      color: var(--ink);
-      text-decoration: none;
-      display: flex;
-      align-items: center;
-      gap: 0.3rem;
-      transition: color 0.12s;
-    }
-
-    .card-link:hover { color: var(--accent); }
-
-    /* ── EMPTY STATE ── */
-    .empty {
-      grid-column: 1 / -1;
-      text-align: center;
-      padding: 6rem 2rem;
-      color: var(--ink2);
-    }
-
-    .empty-icon { font-size: 2.5rem; margin-bottom: 1rem; }
-
-    .empty h3 {
-      font-family: 'Instrument Serif', serif;
-      font-size: 1.5rem;
-      margin-bottom: 0.5rem;
-      color: var(--ink);
-    }
-
-    .empty p { font-size: 0.9rem; }
-
-    /* ── LOADING ── */
-    .loading {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 6rem 2rem;
-      gap: 0.75rem;
-      color: var(--ink2);
-      font-family: 'DM Mono', monospace;
-      font-size: 0.8rem;
-      grid-column: 1 / -1;
-    }
-
-    .spinner {
-      width: 18px; height: 18px;
-      border: 2px solid var(--border);
-      border-top-color: var(--ink);
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-    }
-
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* ── FOOTER ── */
-    footer {
-      margin-top: 6rem;
-      padding: 2rem 2.5rem;
-      border-top: 1.5px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 1rem;
-    }
-
-    footer p {
-      font-family: 'DM Mono', monospace;
-      font-size: 0.72rem;
-      color: var(--ink2);
-    }
-
-    footer a { color: var(--ink); text-underline-offset: 3px; }
-
-    /* ── CONFIG BANNER ── */
-    .config-banner {
-      background: var(--accent);
-      color: white;
-      padding: 0.6rem 2.5rem;
-      font-family: 'DM Mono', monospace;
-      font-size: 0.72rem;
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-    }
-
-    .config-banner a { color: white; }
-  </style>
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
 
   <header>
-    <div class="logo">
+    <a class="logo" href="index.html">
       <span class="logo-text">NotebookLM Tabs</span>
       <span class="logo-badge">Community</span>
-    </div>
+    </a>
     <div class="header-actions">
+      <a class="header-link" href="my-notebooks.html">My notebooks</a>
+      <a class="btn-submit" href="submit.html">+ Submit yours</a>
       <button class="btn-theme" id="themeToggle" aria-label="Toggle dark mode">
         <svg id="iconSun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none">
           <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
@@ -419,7 +29,11 @@
           <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
         </svg>
       </button>
-      <a class="btn-submit" id="submitLink" href="#" target="_blank">+ Submit yours</a>
+      <button class="btn-ghost hidden" id="signInBtn">Sign in</button>
+      <div class="user-chip hidden" id="userBox">
+        <span class="user-name" id="userName"></span>
+        <button class="btn-ghost" id="signOutBtn">Sign out</button>
+      </div>
     </div>
   </header>
 
@@ -454,146 +68,175 @@
     <div class="grid" id="grid">
       <div class="loading"><div class="spinner"></div> Loading notebooks…</div>
     </div>
+    <div class="load-more-wrap hidden" id="loadMoreWrap">
+      <button class="btn-ghost" id="loadMoreBtn">Load more</button>
+    </div>
   </main>
 
   <footer>
-    <p>Built with ♥ by the community · <a href="https://notebooklm.google.com" target="_blank">NotebookLM</a></p>
-    <p><a id="ghLink" href="#" target="_blank">View on GitHub →</a></p>
+    <p>Built with ♥ by the community · <a href="https://notebooklm.google.com" target="_blank" rel="noopener">NotebookLM</a></p>
+    <p><a href="https://github.com/sajomoanne/OpenNotebookLMSS" target="_blank" rel="noopener">View on GitHub →</a></p>
   </footer>
 
-  <script>
-    // ── Dark mode ──
-    const html = document.documentElement;
-    const sunIcon  = document.getElementById('iconSun');
-    const moonIcon = document.getElementById('iconMoon');
+  <script type="module">
+    import {
+      collection, query, where, orderBy, limit, startAfter,
+      getDocs, getDoc, doc,
+    } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
+    import { db } from './firebase.js';
+    import { escapeHtml, formatDate, initTheme, initAuthHeader } from './site.js';
 
-    function applyTheme(dark) {
-      html.setAttribute('data-theme', dark ? 'dark' : 'light');
-      sunIcon.style.display  = dark ? 'block' : 'none';
-      moonIcon.style.display = dark ? 'none'  : 'block';
-    }
+    initTheme();
+    initAuthHeader();
 
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const saved = localStorage.getItem('theme');
-    applyTheme(saved ? saved === 'dark' : prefersDark);
+    const NOTEBOOK_URL_PREFIX = 'https://notebooklm.google.com/';
+    const PAGE_SIZE = 24;
+    const NAMED_CATS = ['Research', 'Science', 'Learning', 'News', 'Creative', 'Business', 'Humanitarian Health'];
 
-    document.getElementById('themeToggle').addEventListener('click', () => {
-      const isDark = html.getAttribute('data-theme') === 'dark';
-      localStorage.setItem('theme', isDark ? 'light' : 'dark');
-      applyTheme(!isDark);
-    });
+    const grid = document.getElementById('grid');
+    const loadMoreWrap = document.getElementById('loadMoreWrap');
+    const loadMoreBtn = document.getElementById('loadMoreBtn');
+    const countLabel = document.getElementById('countLabel');
 
-    // ─────────────────────────────────────────────
-    //  CONFIG — update these two values
-    // ─────────────────────────────────────────────
-    const NAMED_CATS  = ['Research', 'Science', 'Learning', 'News', 'Creative', 'Business'];
-    const GITHUB_REPO = 'Strotmic/list-notebooklm-notebooks'; // e.g. 'bleuzetim/notebooklm-tabs'
-    const BRANCH      = 'main';
-    // ─────────────────────────────────────────────
-
-    const API_BASE = `https://api.github.com/repos/${GITHUB_REPO}/contents/tabs?ref=${BRANCH}`;
-    const RAW_BASE = `https://raw.githubusercontent.com/${GITHUB_REPO}/${BRANCH}/tabs/`;
-    const PR_URL   = `https://github.com/${GITHUB_REPO}/compare`;
-
-    document.getElementById('submitLink').href = PR_URL;
-    document.getElementById('ghLink').href = `https://github.com/${GITHUB_REPO}`;
-
-    if (GITHUB_REPO === 'YOUR_USERNAME/YOUR_REPO') {
-      document.getElementById('configBanner').style.display = 'flex';
-    }
-
-    let allTabs = [];
+    let allDocs = [];
+    let lastDoc = null;
+    let hasMore = true;
+    let loading = false;
     let activeCategory = 'All';
     let searchQuery = '';
+    const authorNames = new Map(); // uid -> displayName | null
 
-    // ── Fetch all tab JSON files from the repo ──
-    async function loadTabs() {
+    const baseQuery = () => query(
+      collection(db, 'notebooks'),
+      where('isPublic', '==', true),
+      where('reviewStatus', '==', 'approved'),
+      orderBy('createdAt', 'desc'),
+      limit(PAGE_SIZE),
+    );
+
+    async function fetchAuthors(docs) {
+      const ids = [...new Set(docs.map(d => d.data().ownerId).filter(Boolean))]
+        .filter(uid => !authorNames.has(uid));
+      await Promise.all(ids.map(async (uid) => {
+        try {
+          const snap = await getDoc(doc(db, 'users', uid));
+          authorNames.set(uid, snap.exists() ? (snap.data().displayName || null) : null);
+        } catch {
+          authorNames.set(uid, null);
+        }
+      }));
+    }
+
+    async function loadMore() {
+      if (loading || !hasMore) return;
+      loading = true;
+      loadMoreBtn.disabled = true;
+      loadMoreBtn.textContent = 'Loading…';
       try {
-        const res = await fetch(API_BASE);
-        if (!res.ok) throw new Error(`GitHub API error: ${res.status}`);
-        const files = await res.json();
-        const jsonFiles = files.filter(f => f.name.endsWith('.json') && f.name !== 'example-tab.json');
-
-        const tabs = await Promise.all(
-          jsonFiles.map(async f => {
-            const r = await fetch(RAW_BASE + f.name);
-            return r.ok ? r.json() : null;
-          })
-        );
-
-        allTabs = tabs.filter(Boolean).sort((a, b) => new Date(b.date) - new Date(a.date));
+        const snap = await getDocs(lastDoc
+          ? query(
+              collection(db, 'notebooks'),
+              where('isPublic', '==', true),
+              where('reviewStatus', '==', 'approved'),
+              orderBy('createdAt', 'desc'),
+              startAfter(lastDoc),
+              limit(PAGE_SIZE),
+            )
+          : baseQuery());
+        const docs = snap.docs;
+        allDocs = allDocs.concat(docs);
+        lastDoc = docs.length ? docs[docs.length - 1] : lastDoc;
+        hasMore = docs.length === PAGE_SIZE;
+        await fetchAuthors(docs);
         render();
       } catch (err) {
-        document.getElementById('grid').innerHTML = `
+        console.error(err);
+        grid.innerHTML = `
           <div class="empty">
-            <div class="empty-icon">📭</div>
+            <div class="empty-icon">⚠️</div>
             <h3>Couldn't load notebooks</h3>
-            <p>Make sure the repo is public and the <code>tabs/</code> folder exists.<br/>
-            Error: ${err.message}</p>
+            <p>${escapeHtml(err.message || 'Unknown error')}<br/>
+            If this mentions an index, create it via the link in the Firebase console error.</p>
           </div>`;
+      } finally {
+        loading = false;
+        loadMoreBtn.disabled = false;
+        loadMoreBtn.textContent = 'Load more';
+        loadMoreWrap.classList.toggle('hidden', !hasMore);
       }
     }
 
-    // ── Render cards ──
+    function allTagsOf(data) {
+      return [...(data.tags || []), ...(data.suggestedTags || [])]
+        .map(t => String(t).toLowerCase());
+    }
+
+    function displayTagsOf(data) {
+      const tags = data.tags && data.tags.length ? data.tags : (data.suggestedTags || []);
+      return tags.slice(0, 4);
+    }
+
+    function safeUrl(url) {
+      return typeof url === 'string' && url.startsWith(NOTEBOOK_URL_PREFIX) ? url : null;
+    }
+
     function render() {
       const q = searchQuery.toLowerCase();
-      const filtered = allTabs.filter(t => {
+      const filtered = allDocs.filter(d => {
+        const t = d.data();
+        const hayTags = allTagsOf(t);
         const matchCat = activeCategory === 'All'
-          || (activeCategory === 'Other' && !NAMED_CATS.includes(t.category))
-          || t.category === activeCategory;
-        const matchQ   = !q
-          || t.title.toLowerCase().includes(q)
-          || t.description.toLowerCase().includes(q)
-          || (t.tags || []).some(tag => tag.toLowerCase().includes(q));
+          || (activeCategory === 'Other' && !hayTags.some(tag => NAMED_CATS.map(c => c.toLowerCase()).includes(tag)))
+          || hayTags.includes(activeCategory.toLowerCase());
+        const matchQ = !q
+          || (t.title || '').toLowerCase().includes(q)
+          || (t.description || '').toLowerCase().includes(q)
+          || hayTags.some(tag => tag.includes(q));
         return matchCat && matchQ;
       });
 
-      const count = filtered.length;
-      document.getElementById('countLabel').textContent =
-        count === 0 ? 'No results' : `${count} notebook${count !== 1 ? 's' : ''}`;
+      countLabel.textContent = filtered.length === 0
+        ? 'No results'
+        : `${filtered.length} notebook${filtered.length !== 1 ? 's' : ''}`;
 
-      if (count === 0) {
-        document.getElementById('grid').innerHTML = `
+      if (filtered.length === 0) {
+        grid.innerHTML = `
           <div class="empty">
-            <div class="empty-icon">🔍</div>
-            <h3>Nothing found</h3>
-            <p>Try a different search or category.</p>
+            <div class="empty-icon">${allDocs.length === 0 ? '📭' : '🔍'}</div>
+            <h3>${allDocs.length === 0 ? 'No notebooks yet' : 'Nothing found'}</h3>
+            <p>${allDocs.length === 0
+              ? 'Be the first to <a href="submit.html">share a notebook</a>.'
+              : 'Try a different search or category.'}</p>
           </div>`;
         return;
       }
 
-      document.getElementById('grid').innerHTML = filtered.map((t, i) => `
+      grid.innerHTML = filtered.map((d, i) => {
+        const t = d.data();
+        const url = safeUrl(t.url);
+        const tags = displayTagsOf(t);
+        const author = t.ownerId ? (authorNames.get(t.ownerId) || 'community member') : 'community member';
+        const category = tags.length ? tags[0] : 'Notebook';
+        return `
         <div class="card" style="animation-delay:${i * 40}ms">
-          <div class="card-category">${escape(t.category)}</div>
-          <div class="card-title">${escape(t.title)}</div>
-          <div class="card-desc">${escape(t.description)}</div>
-          <div class="card-tags">${(t.tags || []).map(tag => `<span class="tag">${escape(tag)}</span>`).join('')}</div>
+          <div class="card-category">${escapeHtml(category)}</div>
+          <div class="card-title">${escapeHtml(t.title)}</div>
+          <div class="card-desc">${escapeHtml(t.description)}</div>
+          <div class="card-tags">${tags.map(tag => `<span class="tag">${escapeHtml(tag)}</span>`).join('')}</div>
           <div class="card-footer">
-            <span class="card-author">by ${escape(t.author)} · ${formatDate(t.date)}</span>
-            <a class="card-link" href="${escape(t.link)}" target="_blank" rel="noopener">
-              Open
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-                <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
-              </svg>
-            </a>
+            <span class="card-author">by ${escapeHtml(author)} · ${escapeHtml(formatDate(t.createdAt))}</span>
+            ${url
+              ? `<a class="card-link" href="${escapeHtml(url)}" target="_blank" rel="noopener">Open
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                    <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                  </svg></a>`
+              : `<span class="card-link disabled">No link</span>`}
           </div>
-        </div>
-      `).join('');
+        </div>`;
+      }).join('');
     }
 
-    function escape(str) {
-      if (!str) return '';
-      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-    }
-
-    function formatDate(d) {
-      if (!d) return '';
-      const [y, m, day] = d.split('-');
-      return new Date(y, m - 1, day).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-    }
-
-    // ── Category pills ──
     document.getElementById('pills').addEventListener('click', e => {
       const pill = e.target.closest('.pill');
       if (!pill) return;
@@ -603,13 +246,14 @@
       render();
     });
 
-    // ── Search ──
     document.getElementById('search').addEventListener('input', e => {
       searchQuery = e.target.value;
       render();
     });
 
-    loadTabs();
+    loadMoreBtn.addEventListener('click', loadMore);
+
+    loadMore();
   </script>
 </body>
 </html>

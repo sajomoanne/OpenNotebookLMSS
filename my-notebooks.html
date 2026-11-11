@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Notebooks — NotebookLM Tabs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <header>
+    <a class="logo" href="index.html">
+      <span class="logo-text">NotebookLM Tabs</span>
+      <span class="logo-badge">Community</span>
+    </a>
+    <div class="header-actions">
+      <a class="header-link" href="my-notebooks.html">My notebooks</a>
+      <a class="btn-submit" href="submit.html">+ Submit yours</a>
+      <button class="btn-theme" id="themeToggle" aria-label="Toggle dark mode">
+        <svg id="iconSun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none">
+          <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+          <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>
+        <svg id="iconMoon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      </button>
+      <button class="btn-ghost hidden" id="signInBtn">Sign in</button>
+      <div class="user-chip hidden" id="userBox">
+        <span class="user-name" id="userName"></span>
+        <button class="btn-ghost" id="signOutBtn">Sign out</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="page">
+    <p class="page-eyebrow">Account</p>
+    <h1>My notebooks</h1>
+    <p class="page-sub">All notebooks you've submitted, with their review status. Edit or delete them anytime.</p>
+
+    <div id="pageNotice" class="notice hidden"></div>
+    <div id="listWrap">
+      <div class="loading" style="padding:3rem 0"><div class="spinner"></div> Loading…</div>
+    </div>
+  </main>
+
+  <footer>
+    <p>Built with ♥ by the community · <a href="https://notebooklm.google.com" target="_blank" rel="noopener">NotebookLM</a></p>
+    <p><a href="https://github.com/sajomoanne/OpenNotebookLMSS" target="_blank" rel="noopener">View on GitHub →</a></p>
+  </footer>
+
+  <script type="module">
+    import {
+      collection, query, where, orderBy, getDocs,
+      deleteDoc, doc,
+    } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
+    import { db } from './firebase.js';
+    import { escapeHtml, formatDate, initTheme, initAuthHeader, whenUserKnown } from './site.js';
+
+    initTheme();
+    initAuthHeader();
+
+    const NOTEBOOK_URL_PREFIX = 'https://notebooklm.google.com/';
+    const listWrap = document.getElementById('listWrap');
+    const pageNotice = document.getElementById('pageNotice');
+    let currentUser = null;
+
+    function statusBadge(data) {
+      if (!data.isPublic) return '<span class="badge private">Private</span>';
+      const s = data.reviewStatus || 'pending';
+      const cls = ['approved', 'pending', 'declined'].includes(s) ? s : 'unknown';
+      return `<span class="badge ${cls}">${escapeHtml(s)}</span>`;
+    }
+
+    function statusHint(data) {
+      if (!data.isPublic) return 'Only visible to you.';
+      switch (data.reviewStatus) {
+        case 'approved': return 'Live in the directory.';
+        case 'declined': return 'Declined — see note below.';
+        case 'pending': return 'Waiting for admin review.';
+        default: return '';
+      }
+    }
+
+    function renderList(docs) {
+      if (docs.length === 0) {
+        listWrap.innerHTML = `
+          <div class="empty" style="padding:3rem 1rem">
+            <div class="empty-icon">📓</div>
+            <h3>No notebooks yet</h3>
+            <p><a href="submit.html">Submit your first notebook</a> to get started.</p>
+          </div>`;
+        return;
+      }
+      listWrap.innerHTML = '<div class="list">' + docs.map(d => {
+        const t = d.data();
+        const url = typeof t.url === 'string' && t.url.startsWith(NOTEBOOK_URL_PREFIX) ? t.url : null;
+        const tags = [...(t.tags && t.tags.length ? t.tags : (t.suggestedTags || []))].slice(0, 4);
+        return `
+        <div class="list-item" data-id="${escapeHtml(d.id)}">
+          <div class="list-item-top">
+            <div class="list-item-title">${escapeHtml(t.title)}</div>
+            ${statusBadge(t)}
+          </div>
+          <div class="list-item-meta">
+            <span>${escapeHtml(formatDate(t.createdAt))}</span>
+            <span>·</span>
+            <span>${escapeHtml(statusHint(t))}</span>
+          </div>
+          <div class="list-item-desc">${escapeHtml(t.description)}</div>
+          ${t.reviewStatus === 'declined' && t.reviewNote
+            ? `<div class="list-item-note">Review note: ${escapeHtml(t.reviewNote)}</div>` : ''}
+          <div class="list-item-actions">
+            <a class="btn-ghost" href="submit.html?id=${encodeURIComponent(d.id)}" style="text-decoration:none;display:inline-block;">Edit</a>
+            ${url ? `<a class="btn-ghost" href="${escapeHtml(url)}" target="_blank" rel="noopener" style="text-decoration:none;display:inline-block;">Open notebook</a>` : ''}
+            <button class="btn-danger" data-action="delete">Delete</button>
+          </div>
+        </div>`;
+      }).join('') + '</div>';
+    }
+
+    async function load() {
+      try {
+        const snap = await getDocs(query(
+          collection(db, 'notebooks'),
+          where('ownerId', '==', currentUser.uid),
+          orderBy('createdAt', 'desc'),
+        ));
+        renderList(snap.docs);
+      } catch (err) {
+        console.error(err);
+        listWrap.innerHTML = `
+          <div class="empty" style="padding:3rem 1rem">
+            <div class="empty-icon">⚠️</div>
+            <h3>Couldn't load your notebooks</h3>
+            <p>${escapeHtml(err.message || 'Unknown error')}</p>
+          </div>`;
+      }
+    }
+
+    listWrap.addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-action="delete"]');
+      if (!btn) return;
+      const item = btn.closest('.list-item');
+      const id = item.dataset.id;
+      const title = item.querySelector('.list-item-title').textContent;
+      if (!confirm(`Delete "${title}"? This cannot be undone.`)) return;
+      btn.disabled = true;
+      btn.textContent = 'Deleting…';
+      try {
+        await deleteDoc(doc(db, 'notebooks', id));
+        item.remove();
+        if (!listWrap.querySelector('.list-item')) {
+          listWrap.innerHTML = `
+            <div class="empty" style="padding:3rem 1rem">
+              <div class="empty-icon">📓</div>
+              <h3>No notebooks yet</h3>
+              <p><a href="submit.html">Submit your first notebook</a> to get started.</p>
+            </div>`;
+        }
+      } catch (err) {
+        console.error(err);
+        pageNotice.textContent = 'Delete failed: ' + (err.message || err);
+        pageNotice.className = 'notice error';
+        pageNotice.classList.remove('hidden');
+        btn.disabled = false;
+        btn.textContent = 'Delete';
+      }
+    });
+
+    whenUserKnown((user) => {
+      if (!user) {
+        listWrap.innerHTML = `
+          <div class="empty" style="padding:3rem 1rem">
+            <div class="empty-icon">🔒</div>
+            <h3>Sign in required</h3>
+            <p><a href="index.html">Go back and sign in</a> to see your notebooks.</p>
+          </div>`;
+        return;
+      }
+      currentUser = user;
+      load();
+    });
+  </script>
+</body>
+</html>

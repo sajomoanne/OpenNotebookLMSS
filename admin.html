@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — NotebookLM Tabs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <header>
+    <a class="logo" href="index.html">
+      <span class="logo-text">NotebookLM Tabs</span>
+      <span class="logo-badge">Admin</span>
+    </a>
+    <div class="header-actions">
+      <a class="header-link" href="my-notebooks.html">My notebooks</a>
+      <button class="btn-theme" id="themeToggle" aria-label="Toggle dark mode">
+        <svg id="iconSun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none">
+          <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+          <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>
+        <svg id="iconMoon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      </button>
+      <button class="btn-ghost hidden" id="signInBtn">Sign in</button>
+      <div class="user-chip hidden" id="userBox">
+        <span class="user-name" id="userName"></span>
+        <button class="btn-ghost" id="signOutBtn">Sign out</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="page" style="max-width:1100px">
+    <p class="page-eyebrow">Moderator</p>
+    <h1>Review queue</h1>
+    <p class="page-sub">Review submitted notebooks. Edit fields if needed, set the approved tags, then approve or decline.</p>
+
+    <div id="pageNotice" class="notice hidden"></div>
+
+    <div id="gate" class="loading" style="padding:3rem 0"><div class="spinner"></div> Checking access…</div>
+
+    <div id="adminUI" class="hidden">
+      <div class="controls" style="padding:0 0 1.5rem;border-bottom:none">
+        <div class="filter-pills" id="statusPills">
+          <button class="pill active" data-status="pending">Pending</button>
+          <button class="pill" data-status="approved">Approved</button>
+          <button class="pill" data-status="declined">Declined</button>
+          <button class="pill" data-status="all">All</button>
+        </div>
+        <span class="count-label" id="countLabel"></span>
+      </div>
+
+      <div class="admin-layout" style="margin-top:1.5rem">
+        <div class="admin-queue" id="queue">
+          <div class="loading" style="padding:2rem"><div class="spinner"></div> Loading…</div>
+        </div>
+
+        <div class="admin-detail hidden" id="detail">
+          <h2 id="dTitle">Notebook</h2>
+          <div class="detail-meta" id="dMeta"></div>
+
+          <div class="field">
+            <label for="dTitleInput">Title</label>
+            <input type="text" id="dTitleInput" maxlength="100" />
+          </div>
+          <div class="field">
+            <label for="dDescInput">Description</label>
+            <textarea id="dDescInput" maxlength="500"></textarea>
+            <span class="char-count"><span id="dDescCount">0</span>/500</span>
+          </div>
+          <div class="field">
+            <label for="dUrlInput">Notebook URL</label>
+            <input type="url" id="dUrlInput" />
+          </div>
+          <div class="field">
+            <label for="dTagsInput">Approved tags</label>
+            <input type="text" id="dTagsInput" placeholder="comma separated, max 4" />
+            <span class="hint" id="dSuggestedHint"></span>
+          </div>
+          <div class="field review-note-row">
+            <label for="dNoteInput">Review note <span style="text-transform:none">(shown to the owner if declined)</span></label>
+            <textarea id="dNoteInput" maxlength="500" placeholder="Optional for approval, encouraged for declines"></textarea>
+          </div>
+
+          <div class="form-actions">
+            <button class="btn-success" id="approveBtn">Approve</button>
+            <button class="btn-danger" id="declineBtn">Decline</button>
+            <button class="btn-ghost" id="saveBtn">Save edits only</button>
+          </div>
+        </div>
+
+        <div class="admin-detail hidden" id="detailEmpty">
+          <p style="color:var(--ink2);font-size:0.9rem">Select a notebook from the queue to review it.</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p>Built with ♥ by the community · <a href="https://notebooklm.google.com" target="_blank" rel="noopener">NotebookLM</a></p>
+    <p><a href="https://github.com/sajomoanne/OpenNotebookLMSS" target="_blank" rel="noopener">View on GitHub →</a></p>
+  </footer>
+
+  <script type="module">
+    import {
+      collection, query, where, orderBy, limit, getDocs,
+      doc, getDoc, updateDoc, serverTimestamp,
+    } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
+    import { db } from './firebase.js';
+    import { escapeHtml, formatDate, initTheme, initAuthHeader, whenUserKnown } from './site.js';
+
+    initTheme();
+    initAuthHeader();
+
+    const NOTEBOOK_URL_PREFIX = 'https://notebooklm.google.com/';
+    const PAGE_LIMIT = 100;
+
+    const gate = document.getElementById('gate');
+    const adminUI = document.getElementById('adminUI');
+    const queue = document.getElementById('queue');
+    const detail = document.getElementById('detail');
+    const detailEmpty = document.getElementById('detailEmpty');
+    const countLabel = document.getElementById('countLabel');
+    const pageNotice = document.getElementById('pageNotice');
+
+    const dTitleInput = document.getElementById('dTitleInput');
+    const dDescInput = document.getElementById('dDescInput');
+    const dDescCount = document.getElementById('dDescCount');
+    const dUrlInput = document.getElementById('dUrlInput');
+    const dTagsInput = document.getElementById('dTagsInput');
+    const dNoteInput = document.getElementById('dNoteInput');
+    const dSuggestedHint = document.getElementById('dSuggestedHint');
+    const dMeta = document.getElementById('dMeta');
+    const dTitle = document.getElementById('dTitle');
+
+    let adminUid = null;
+    let currentFilter = 'pending';
+    let selectedId = null;
+    let queueDocs = [];
+
+    dDescInput.addEventListener('input', () => {
+      dDescCount.textContent = dDescInput.value.length;
+    });
+
+    function notice(msg, kind) {
+      pageNotice.textContent = msg;
+      pageNotice.className = 'notice ' + kind;
+      pageNotice.classList.remove('hidden');
+    }
+    function clearNotice() { pageNotice.classList.add('hidden'); }
+
+    function statusBadge(data) {
+      if (!data.isPublic) return '<span class="badge private">Private</span>';
+      const s = data.reviewStatus || 'pending';
+      const cls = ['approved', 'pending', 'declined'].includes(s) ? s : 'unknown';
+      return `<span class="badge ${cls}">${escapeHtml(s)}</span>`;
+    }
+
+    function queueQuery() {
+      const col = collection(db, 'notebooks');
+      if (currentFilter === 'all') {
+        return query(col, orderBy('createdAt', 'desc'), limit(PAGE_LIMIT));
+      }
+      return query(
+        col,
+        where('reviewStatus', '==', currentFilter),
+        orderBy('createdAt', 'desc'),
+        limit(PAGE_LIMIT),
+      );
+    }
+
+    async function loadQueue() {
+      queue.innerHTML = '<div class="loading" style="padding:2rem"><div class="spinner"></div> Loading…</div>';
+      try {
+        const snap = await getDocs(queueQuery());
+        queueDocs = snap.docs;
+        countLabel.textContent = `${queueDocs.length} notebook${queueDocs.length !== 1 ? 's' : ''}`;
+        renderQueue();
+      } catch (err) {
+        console.error(err);
+        queue.innerHTML = `
+          <div class="empty" style="padding:2rem">
+            <div class="empty-icon">⚠️</div>
+            <h3>Couldn't load queue</h3>
+            <p>${escapeHtml(err.message || 'Unknown error')}<br/>A composite index may be required — check the Firebase console error.</p>
+          </div>`;
+      }
+    }
+
+    function renderQueue() {
+      if (queueDocs.length === 0) {
+        queue.innerHTML = `
+          <div class="empty" style="padding:2rem">
+            <div class="empty-icon">✅</div>
+            <h3>Queue is empty</h3>
+            <p>Nothing with this status right now.</p>
+          </div>`;
+        detailEmpty.classList.remove('hidden');
+        detail.classList.add('hidden');
+        return;
+      }
+      queue.innerHTML = queueDocs.map(d => {
+        const t = d.data();
+        const active = d.id === selectedId ? ' active' : '';
+        return `
+        <div class="queue-item${active}" data-id="${escapeHtml(d.id)}">
+          <div class="queue-item-title">${escapeHtml(t.title)}</div>
+          <div class="queue-item-meta">
+            ${statusBadge(t)}
+            <span>${escapeHtml(formatDate(t.createdAt))}</span>
+          </div>
+        </div>`;
+      }).join('');
+
+      // keep detail in sync if selected item still exists
+      if (selectedId && !queueDocs.some(d => d.id === selectedId)) {
+        selectedId = null;
+        detail.classList.add('hidden');
+        detailEmpty.classList.remove('hidden');
+      }
+    }
+
+    function selectNotebook(id) {
+      selectedId = id;
+      const snap = queueDocs.find(d => d.id === id);
+      if (!snap) return;
+      const t = snap.data();
+
+      dTitle.textContent = t.title || 'Notebook';
+      dTitleInput.value = t.title || '';
+      dDescInput.value = t.description || '';
+      dDescCount.textContent = dDescInput.value.length;
+      dUrlInput.value = t.url || '';
+      dTagsInput.value = (t.tags || []).join(', ');
+      dNoteInput.value = t.reviewNote || '';
+      const suggested = (t.suggestedTags || []).join(', ');
+      dSuggestedHint.textContent = suggested ? `Owner suggested: ${suggested}` : '';
+
+      const url = typeof t.url === 'string' && t.url.startsWith(NOTEBOOK_URL_PREFIX) ? t.url : null;
+      dMeta.innerHTML = `
+        <span>${statusBadge(t)}</span>
+        <span>by ${escapeHtml(t.ownerId || 'unknown')}</span>
+        <span>${escapeHtml(formatDate(t.createdAt))}</span>
+        ${url ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener">Open notebook ↗</a>` : ''}
+        ${t.reviewedBy ? `<span>reviewed by ${escapeHtml(t.reviewedBy)}</span>` : ''}
+        ${t.reviewedAt ? `<span>${escapeHtml(formatDate(t.reviewedAt))}</span>` : ''}
+      `;
+
+      detailEmpty.classList.add('hidden');
+      detail.classList.remove('hidden');
+      renderQueue(); // refresh active highlight
+    }
+
+    function readDetailForm() {
+      return {
+        title: dTitleInput.value.trim(),
+        description: dDescInput.value.trim(),
+        url: dUrlInput.value.trim(),
+        tags: [...new Set(dTagsInput.value.split(',').map(s => s.trim()).filter(Boolean))].slice(0, 4),
+        reviewNote: dNoteInput.value.trim(),
+      };
+    }
+
+    function validateDetail(form) {
+      if (form.title.length < 3 || form.title.length > 100) {
+        notice('Title must be between 3 and 100 characters.', 'error');
+        return false;
+      }
+      if (form.description.length > 500) {
+        notice('Description must be 500 characters or fewer.', 'error');
+        return false;
+      }
+      if (!form.url.startsWith(NOTEBOOK_URL_PREFIX)) {
+        notice('URL must start with https://notebooklm.google.com/', 'error');
+        return false;
+      }
+      if (form.tags.some(t => t.length > 30)) {
+        notice('Each tag must be 30 characters or fewer.', 'error');
+        return false;
+      }
+      return true;
+    }
+
+    async function applyReview(decision) {
+      if (!selectedId) { notice('Select a notebook first.', 'error'); return; }
+      const form = readDetailForm();
+      if (!validateDetail(form)) return;
+      if (decision === 'declined' && !form.reviewNote) {
+        notice('Please add a review note explaining the decline.', 'error');
+        return;
+      }
+
+      const payload = {
+        title: form.title,
+        description: form.description,
+        url: form.url,
+        tags: form.tags,
+        reviewStatus: decision,
+        reviewedBy: adminUid,
+        reviewedAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      };
+      if (form.reviewNote) payload.reviewNote = form.reviewNote;
+
+      const btn = decision === 'approved' ? document.getElementById('approveBtn') : document.getElementById('declineBtn');
+      btn.disabled = true;
+      try {
+        await updateDoc(doc(db, 'notebooks', selectedId), payload);
+        notice(`Notebook ${decision}.`, 'success');
+        await loadQueue();
+      } catch (err) {
+        console.error(err);
+        notice('Update failed: ' + (err.message || err), 'error');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    document.getElementById('statusPills').addEventListener('click', e => {
+      const pill = e.target.closest('.pill');
+      if (!pill) return;
+      document.querySelectorAll('#statusPills .pill').forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+      currentFilter = pill.dataset.status;
+      selectedId = null;
+      detail.classList.add('hidden');
+      detailEmpty.classList.remove('hidden');
+      clearNotice();
+      loadQueue();
+    });
+
+    queue.addEventListener('click', e => {
+      const item = e.target.closest('.queue-item');
+      if (item) selectNotebook(item.dataset.id);
+    });
+
+    document.getElementById('saveBtn').addEventListener('click', async () => {
+      if (!selectedId) return;
+      const form = readDetailForm();
+      if (!validateDetail(form)) return;
+      const btn = document.getElementById('saveBtn');
+      btn.disabled = true;
+      try {
+        await updateDoc(doc(db, 'notebooks', selectedId), {
+          title: form.title,
+          description: form.description,
+          url: form.url,
+          tags: form.tags,
+          ...(form.reviewNote ? { reviewNote: form.reviewNote } : {}),
+          updatedAt: serverTimestamp(),
+        });
+        notice('Changes saved.', 'success');
+        await loadQueue();
+        selectNotebook(selectedId);
+      } catch (err) {
+        console.error(err);
+        notice('Save failed: ' + (err.message || err), 'error');
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    document.getElementById('approveBtn').addEventListener('click', () => applyReview('approved'));
+    document.getElementById('declineBtn').addEventListener('click', () => applyReview('declined'));
+
+    whenUserKnown(async (user) => {
+      if (!user) {
+        gate.innerHTML = `
+          <div class="empty" style="padding:3rem 1rem">
+            <div class="empty-icon">🔒</div>
+            <h3>Sign in required</h3>
+            <p><a href="index.html">Go back and sign in</a> to access the admin panel.</p>
+          </div>`;
+        return;
+      }
+      try {
+        const snap = await getDoc(doc(db, 'admin', user.uid));
+        if (!snap.exists()) {
+          location.href = 'index.html';
+          return;
+        }
+        adminUid = user.uid;
+        gate.classList.add('hidden');
+        adminUI.classList.remove('hidden');
+        loadQueue();
+      } catch (err) {
+        console.error(err);
+        gate.innerHTML = `
+          <div class="empty" style="padding:3rem 1rem">
+            <div class="empty-icon">⚠️</div>
+            <h3>Access check failed</h3>
+            <p>${escapeHtml(err.message || 'Unknown error')}</p>
+          </div>`;
+      }
+    });
+  </script>
+</body>
+</html>

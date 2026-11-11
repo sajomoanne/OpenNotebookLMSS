@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Submit a Notebook — NotebookLM Tabs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <header>
+    <a class="logo" href="index.html">
+      <span class="logo-text">NotebookLM Tabs</span>
+      <span class="logo-badge">Community</span>
+    </a>
+    <div class="header-actions">
+      <a class="header-link" href="my-notebooks.html">My notebooks</a>
+      <a class="btn-submit" href="submit.html">+ Submit yours</a>
+      <button class="btn-theme" id="themeToggle" aria-label="Toggle dark mode">
+        <svg id="iconSun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none">
+          <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+          <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>
+        <svg id="iconMoon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      </button>
+      <button class="btn-ghost hidden" id="signInBtn">Sign in</button>
+      <div class="user-chip hidden" id="userBox">
+        <span class="user-name" id="userName"></span>
+        <button class="btn-ghost" id="signOutBtn">Sign out</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="page">
+    <p class="page-eyebrow" id="pageEyebrow">Share</p>
+    <h1 id="pageTitle">Submit a notebook</h1>
+    <p class="page-sub" id="pageSub">
+      Share a public NotebookLM notebook with the community. Public submissions are
+      reviewed by an admin before they appear in the directory.
+    </p>
+
+    <div id="authNotice" class="notice info hidden">
+      You need to <a href="index.html">sign in</a> to submit a notebook.
+    </div>
+    <div id="formNotice" class="notice hidden"></div>
+
+    <form class="form-card hidden" id="notebookForm" novalidate>
+      <div class="field" id="titleField">
+        <label for="title">Title</label>
+        <input type="text" id="title" maxlength="100" placeholder="e.g. Climate Policy Deep Dive" />
+        <span class="char-count"><span id="titleCount">0</span>/100</span>
+        <span class="error-text" id="titleError"></span>
+      </div>
+
+      <div class="field" id="descField">
+        <label for="description">Description</label>
+        <textarea id="description" maxlength="500" placeholder="What is this notebook about?"></textarea>
+        <span class="char-count"><span id="descCount">0</span>/500</span>
+        <span class="error-text" id="descError"></span>
+      </div>
+
+      <div class="field" id="urlField">
+        <label for="url">Notebook URL</label>
+        <input type="url" id="url" placeholder="https://notebooklm.google.com/notebook/…" />
+        <span class="hint">Must be a public notebook — links must start with https://notebooklm.google.com/</span>
+        <span class="error-text" id="urlError"></span>
+      </div>
+
+      <div class="field" id="tagsField">
+        <label for="tags">Suggested tags</label>
+        <input type="text" id="tags" placeholder="e.g. research, climate, policy (max 4, comma separated)" />
+        <span class="hint">Up to 4 tags, each 30 characters or fewer. An admin reviews them before they go live.</span>
+        <span class="error-text" id="tagsError"></span>
+      </div>
+
+      <div class="field">
+        <label>Visibility</label>
+        <div class="visibility">
+          <label class="vis-option selected" id="visPublic">
+            <input type="radio" name="visibility" value="public" checked />
+            <div class="vis-title">Public</div>
+            <div class="vis-desc">Listed in the directory after admin review.</div>
+          </label>
+          <label class="vis-option" id="visPrivate">
+            <input type="radio" name="visibility" value="private" />
+            <div class="vis-title">Private</div>
+            <div class="vis-desc">Only visible to you. No review needed.</div>
+          </label>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn-primary" id="submitBtn">Submit for review</button>
+        <a class="btn-ghost" href="my-notebooks.html" style="text-decoration:none;display:inline-block;padding:0.65rem 1rem;">Cancel</a>
+      </div>
+    </form>
+  </main>
+
+  <footer>
+    <p>Built with ♥ by the community · <a href="https://notebooklm.google.com" target="_blank" rel="noopener">NotebookLM</a></p>
+    <p><a href="https://github.com/sajomoanne/OpenNotebookLMSS" target="_blank" rel="noopener">View on GitHub →</a></p>
+  </footer>
+
+  <script type="module">
+    import {
+      collection, query, where, getDocs,
+      addDoc, updateDoc, doc, getDoc, serverTimestamp,
+    } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
+    import { db } from './firebase.js';
+    import { escapeHtml, initTheme, initAuthHeader, whenUserKnown } from './site.js';
+
+    initTheme();
+    initAuthHeader();
+
+    const NOTEBOOK_URL_PREFIX = 'https://notebooklm.google.com/';
+    const MAX_TAGS = 4;
+    const MAX_TAG_LEN = 30;
+
+    const els = {
+      eyebrow: document.getElementById('pageEyebrow'),
+      title: document.getElementById('pageTitle'),
+      sub: document.getElementById('pageSub'),
+      authNotice: document.getElementById('authNotice'),
+      formNotice: document.getElementById('formNotice'),
+      form: document.getElementById('notebookForm'),
+      submitBtn: document.getElementById('submitBtn'),
+      fTitle: document.getElementById('titleField'),
+      fDesc: document.getElementById('descField'),
+      fUrl: document.getElementById('urlField'),
+      fTags: document.getElementById('tagsField'),
+      inTitle: document.getElementById('title'),
+      inDesc: document.getElementById('description'),
+      inUrl: document.getElementById('url'),
+      inTags: document.getElementById('tags'),
+      titleCount: document.getElementById('titleCount'),
+      descCount: document.getElementById('descCount'),
+      eTitle: document.getElementById('titleError'),
+      eDesc: document.getElementById('descError'),
+      eUrl: document.getElementById('urlError'),
+      eTags: document.getElementById('tagsError'),
+      visPublic: document.getElementById('visPublic'),
+      visPrivate: document.getElementById('visPrivate'),
+    };
+
+    const editId = new URLSearchParams(location.search).get('id');
+    let currentUser = null;
+    let editingDoc = null; // { id, data }
+
+    // ── char counters ──
+    els.inTitle.addEventListener('input', () => {
+      els.titleCount.textContent = els.inTitle.value.length;
+      clearFieldError(els.fTitle);
+    });
+    els.inDesc.addEventListener('input', () => {
+      els.descCount.textContent = els.inDesc.value.length;
+      clearFieldError(els.fDesc);
+    });
+    [els.inTitle, els.inDesc, els.inUrl, els.inTags].forEach(el =>
+      el.addEventListener('input', () => clearAllFieldErrors())
+    );
+
+    // ── visibility toggle ──
+    document.querySelectorAll('input[name="visibility"]').forEach(r => {
+      r.addEventListener('change', () => {
+        els.visPublic.classList.toggle('selected', r.value === 'public' && r.checked);
+        els.visPrivate.classList.toggle('selected', r.value === 'private' && r.checked);
+      });
+    });
+
+    function setNotice(el, msg, kind) {
+      el.textContent = msg;
+      el.className = 'notice ' + kind;
+      el.classList.remove('hidden');
+    }
+
+    function clearFieldError(fieldEl) {
+      fieldEl.classList.remove('invalid');
+      fieldEl.querySelector('.error-text').textContent = '';
+    }
+    function clearAllFieldErrors() {
+      [els.fTitle, els.fDesc, els.fUrl, els.fTags].forEach(clearFieldError);
+    }
+    function showFieldError(fieldEl, errorEl, msg) {
+      fieldEl.classList.add('invalid');
+      errorEl.textContent = msg;
+    }
+
+    function normalizeUrl(raw) {
+      let u = (raw || '').trim();
+      if (!u) return '';
+      if (u.startsWith('notebooklm.google.com')) u = 'https://' + u;
+      if (u.startsWith('http://notebooklm.google.com')) u = 'https://' + u.slice(7);
+      return u;
+    }
+
+    function parseTags(raw) {
+      return [...new Set(
+        (raw || '').split(',').map(t => t.trim()).filter(Boolean)
+      )];
+    }
+
+    function validate() {
+      clearAllFieldErrors();
+      let ok = true;
+      const title = els.inTitle.value.trim();
+      const desc = els.inDesc.value.trim();
+      const url = normalizeUrl(els.inUrl.value);
+      const tags = parseTags(els.inTags.value);
+
+      if (title.length < 3 || title.length > 100) {
+        showFieldError(els.fTitle, els.eTitle, 'Title must be between 3 and 100 characters.');
+        ok = false;
+      }
+      if (desc.length > 500) {
+        showFieldError(els.fDesc, els.eDesc, 'Description must be 500 characters or fewer.');
+        ok = false;
+      }
+      if (!url.startsWith(NOTEBOOK_URL_PREFIX)) {
+        showFieldError(els.fUrl, els.eUrl, 'URL must start with https://notebooklm.google.com/');
+        ok = false;
+      }
+      if (tags.length > MAX_TAGS) {
+        showFieldError(els.fTags, els.eTags, `Maximum ${MAX_TAGS} tags.`);
+        ok = false;
+      } else if (tags.some(t => t.length > MAX_TAG_LEN)) {
+        showFieldError(els.fTags, els.eTags, `Each tag must be ${MAX_TAG_LEN} characters or fewer.`);
+        ok = false;
+      }
+      return ok ? { title, desc, url, tags } : null;
+    }
+
+    async function urlAlreadyExists(url) {
+      const snap = await getDocs(query(
+        collection(db, 'notebooks'),
+        where('ownerId', '==', currentUser.uid),
+      ));
+      return snap.docs.some(d =>
+        d.id !== editId && normalizeUrl(d.data().url) === url
+      );
+    }
+
+    function isPublic() {
+      return document.querySelector('input[name="visibility"]:checked').value === 'public';
+    }
+
+    async function prefill() {
+      if (!editId || !currentUser) return;
+      try {
+        const snap = await getDoc(doc(db, 'notebooks', editId));
+        if (!snap.exists()) {
+          setNotice(els.formNotice, 'Notebook not found.', 'error');
+          return;
+        }
+        const data = snap.data();
+        if (data.ownerId !== currentUser.uid) {
+          setNotice(els.formNotice, 'You can only edit your own notebooks.', 'error');
+          els.form.classList.add('hidden');
+          return;
+        }
+        editingDoc = { id: editId, data };
+        els.inTitle.value = data.title || '';
+        els.inDesc.value = data.description || '';
+        els.inUrl.value = data.url || '';
+        els.inTags.value = (data.suggestedTags || []).join(', ');
+        const pub = data.isPublic !== false;
+        document.querySelector(`input[name="visibility"][value="${pub ? 'public' : 'private'}"]`).checked = true;
+        els.visPublic.classList.toggle('selected', pub);
+        els.visPrivate.classList.toggle('selected', !pub);
+        els.titleCount.textContent = els.inTitle.value.length;
+        els.descCount.textContent = els.inDesc.value.length;
+        els.title.textContent = 'Edit notebook';
+        els.eyebrow.textContent = 'Edit';
+        els.submitBtn.textContent = 'Save changes';
+        els.sub.textContent = 'Update your notebook submission. Public notebooks go back into the review queue.';
+      } catch (err) {
+        console.error(err);
+        setNotice(els.formNotice, 'Failed to load notebook: ' + (err.message || err), 'error');
+      }
+    }
+
+    els.form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const v = validate();
+      if (!v) return;
+
+      els.submitBtn.disabled = true;
+      const originalLabel = els.submitBtn.textContent;
+      els.submitBtn.textContent = 'Saving…';
+      try {
+        if (await urlAlreadyExists(v.url)) {
+          showFieldError(els.fUrl, els.eUrl, 'You already have a notebook with this URL.');
+          return;
+        }
+
+        const pub = isPublic();
+        const payload = {
+          title: v.title,
+          description: v.desc,
+          url: v.url,
+          suggestedTags: v.tags,
+          isPublic: pub,
+          reviewStatus: pub ? 'pending' : 'none',
+          updatedAt: serverTimestamp(),
+        };
+
+        if (editingDoc) {
+          await updateDoc(doc(db, 'notebooks', editingDoc.id), payload);
+        } else {
+          await addDoc(collection(db, 'notebooks'), {
+            ...payload,
+            ownerId: currentUser.uid,
+            tags: [],
+            createdAt: serverTimestamp(),
+          });
+        }
+
+        els.form.classList.add('hidden');
+        setNotice(els.formNotice,
+          editingDoc
+            ? 'Notebook updated. If it is public, it has been sent back for review.'
+            : pub
+              ? 'Submitted! Your notebook is pending admin review and will appear in the directory once approved.'
+              : 'Saved! Your private notebook is visible only to you.',
+          'success');
+        els.sub.textContent = 'Done.';
+        els.submitBtn.textContent = originalLabel;
+      } catch (err) {
+        console.error(err);
+        setNotice(els.formNotice, 'Save failed: ' + (err.message || err), 'error');
+        els.submitBtn.textContent = originalLabel;
+      } finally {
+        els.submitBtn.disabled = false;
+      }
+    });
+
+    whenUserKnown(async (user) => {
+      if (!user) {
+        els.authNotice.classList.remove('hidden');
+        return;
+      }
+      currentUser = user;
+      els.form.classList.remove('hidden');
+      await prefill();
+    });
+  </script>
+</body>
+</html>

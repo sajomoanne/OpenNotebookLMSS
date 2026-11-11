@@ -1,0 +1,130 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- helpers ----------
+    function signedIn() { return request.auth != null; }
+    function verified() {
+      return signedIn() && request.auth.token.email_verified == true;
+    }
+    function isAdmin() {
+      return signedIn() &&
+        exists(/databases/$(database)/documents/admin/$(request.auth.uid));
+    }
+    function isOwner() {
+      return signedIn() && resource.data.ownerId == request.auth.uid;
+    }
+
+    function validNotebook(d) {
+      return d.title is string && d.title.size() >= 3 && d.title.size() <= 100
+        && d.description is string && d.description.size() <= 500
+        && d.url is string && d.url.size() <= 500
+        && d.url.matches('^https://notebooklm\\.google\\.com/.+')
+        && d.suggestedTags is list && d.suggestedTags.size() <= 4
+        && d.isPublic is bool;
+    }
+
+    // public notebooks need review; private ones skip it
+    function expectedStatus(d) {
+      return d.isPublic == true ? 'pending' : 'none';
+    }
+
+    // ---------- admin list (read-only, set manually in console) ----------
+    match /admin/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    // ---------- users ----------
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(
+             ['displayName','email','bio','createdAt','lastLoginAt'])
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() <= 50
+        && request.resource.data.createdAt == request.time;
+
+      allow update: if signedIn() && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['displayName','bio','lastLoginAt'])
+        && request.resource.data.displayName.size() <= 50
+        && (!('bio' in request.resource.data) || request.resource.data.bio.size() <= 300);
+
+      allow delete: if signedIn() && request.auth.uid == uid;
+    }
+
+    // ---------- notebooks ----------
+    match /notebooks/{notebookId} {
+
+      // public sees approved+public only; owner sees own; admin sees all
+      allow get, list: if (resource.data.isPublic == true
+                           && resource.data.reviewStatus == 'approved')
+                       || isOwner()
+                       || isAdmin();
+
+      // submit: must be verified, own ID, no review fields, starts pending/none
+      allow create: if verified()
+        && request.resource.data.keys().hasOnly(
+             ['ownerId','title','description','url','suggestedTags','tags',
+              'isPublic','reviewStatus','createdAt','updatedAt','sources'])
+        && request.resource.data.ownerId == request.auth.uid
+        && validNotebook(request.resource.data)
+        && request.resource.data.tags == []
+        && request.resource.data.reviewStatus == expectedStatus(request.resource.data)
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      // owner edit: limited fields, and status always resets (forces re-review)
+      allow update: if verified() && isOwner()
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['title','description','url','suggestedTags',
+                       'isPublic','reviewStatus','sources','updatedAt'])
+        && validNotebook(request.resource.data)
+        && request.resource.data.reviewStatus == expectedStatus(request.resource.data)
+        && request.resource.data.updatedAt == request.time;
+
+      // admin: full control (approve, decline, edit tags, notes)
+      allow update, delete: if isAdmin();
+
+      allow delete: if isOwner();
+
+      // ---------- ratings (one doc per user, doc ID = user ID) ----------
+      match /ratings/{uid} {
+        allow read: if get(/databases/$(database)/documents/notebooks/$(notebookId))
+                         .data.reviewStatus == 'approved' || isAdmin();
+
+        allow create, update: if verified() && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['value','updatedAt'])
+          && request.resource.data.value is int
+          && request.resource.data.value >= 1 && request.resource.data.value <= 5
+          && request.resource.data.updatedAt == request.time
+          && get(/databases/$(database)/documents/notebooks/$(notebookId))
+               .data.reviewStatus == 'approved'
+          && get(/databases/$(database)/documents/notebooks/$(notebookId))
+               .data.ownerId != request.auth.uid;
+
+        allow delete: if signedIn() && request.auth.uid == uid;
+      }
+    }
+
+    // ---------- reports ----------
+    match /reports/{reportId} {
+      allow read, update, delete: if isAdmin();
+
+      // doc ID must be notebookId_userId, so each user can report a notebook once
+      allow create: if verified()
+        && reportId == request.resource.data.notebookId + '_' + request.auth.uid
+        && request.resource.data.keys().hasOnly(
+             ['notebookId','reporterId','reason','details','status','createdAt'])
+        && request.resource.data.reporterId == request.auth.uid
+        && request.resource.data.reason in ['spam','broken_link','inappropriate','other']
+        && request.resource.data.details is string
+        && request.resource.data.details.size() <= 1000
+        && request.resource.data.status == 'open'
+        && request.resource.data.createdAt == request.time;
+    }
+  }
+}
